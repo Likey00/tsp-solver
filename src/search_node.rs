@@ -1,7 +1,13 @@
 use std::collections::BTreeSet;
+
 use crate::chain_tracker::ChainTracker;
 
 pub type Edge = (usize, usize);
+
+pub fn reverse_edge(edge: Edge) -> Edge {
+    let (source, target) = edge;
+    (target, source)
+}
 
 #[derive(Clone)]
 pub struct SearchNode {
@@ -10,6 +16,8 @@ pub struct SearchNode {
     pub adjacency_matrix: Vec<Vec<f64>>,
     pub edges_included: Vec<Edge>,
     pub zeros: BTreeSet<Edge>,
+    pub row_order: Vec<usize>,
+    pub col_order: Vec<usize>,
     pub chains: ChainTracker,
 }
 
@@ -21,8 +29,10 @@ impl SearchNode {
             n,
             cost: 0.,
             adjacency_matrix,
-            edges_included: Vec::new(),
+            edges_included: Vec::with_capacity(n*n),
             zeros: BTreeSet::new(),
+            row_order: (0..n).collect(),
+            col_order: (0..n).collect(),
             chains: ChainTracker::new(n),
         };
 
@@ -39,12 +49,12 @@ impl SearchNode {
         self.forbid_row_and_col(edge);
     }
     
-    pub fn find_edge_to_include(&self) -> Option<Edge> {
+    pub fn find_edge_to_include(&mut self) -> Option<Edge> {
         let mut max_cost = self.cost;
         let mut max_edge = None;
 
-        for edge in self.zeros.iter() {
-            let cost = self.cost_if_not_included(*edge);
+        for edge in self.zeros.clone().iter() {
+            let cost = self.cost_after_deletion(*edge);
             if cost >= max_cost {
                 max_cost = cost;
                 max_edge = Some(*edge);
@@ -52,12 +62,5 @@ impl SearchNode {
         }
         
         max_edge
-    }
-    
-    fn cost_if_not_included(&self, edge: Edge) -> f64 {
-        let mut not_included = self.clone();
-        not_included.forbid_edge(edge);
-        not_included.reduce_matrix();
-        not_included.cost
     }
 }

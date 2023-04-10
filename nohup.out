@@ -1,0 +1,7 @@
+    Finished release [optimized] target(s) in 0.02s
+     Running `target/release/tsp-solver`
+Successfully read matrix of dimension 42
+Initial lower bound: 498
+Command terminated by signal 9
+5532.51user 5.04system 1:34:20elapsed 97%CPU (0avgtext+0avgdata 14556maxresident)k
+0inputs+0outputs (0major+760minor)pagefaults 0swaps

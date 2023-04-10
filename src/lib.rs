@@ -7,6 +7,6 @@ mod search_node;
 mod solver;
 
 pub fn run() {
-    let mut solver = Solver::new("test1.txt");
+    let mut solver = Solver::new("test26.txt");
     solver.solve();
 }
