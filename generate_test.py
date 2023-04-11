@@ -1,7 +1,7 @@
 from random import randint
 from math import sqrt
 
-n = 25
+n = 37
 random_coords = [(randint(1, 1000), randint(1, 1000)) for _ in range(n)]
 
 with open('test.txt', 'w') as f:

@@ -21,23 +21,29 @@ impl SearchNode {
         }
     }
     
-    pub fn cost_after_deletion(&mut self, edge: Edge) -> f64 {
+    pub fn cost_after_deletion(&self, edge: Edge) -> i32 {
         let (source, target) = edge;
         
-        let temp = self.adjacency_matrix[source][target];
-        self.adjacency_matrix[source][target] = f64::INFINITY;
-        let new_cost = self.cost + {
-            self.get_row_min(source).unwrap_or(0.)
-            + self.get_col_min(target).unwrap_or(0.)
-        };
-        self.adjacency_matrix[source][target] = temp;
+        let new_row_min = self.row_order.iter()
+            .filter(|i| **i != source)
+            .map(|i| self.adjacency_matrix[(*i, target)])
+            .filter(|val| *val < i32::MAX / 2)
+            .min();
+        
+        let new_col_min = self.col_order.iter()
+            .filter(|i| **i != target)
+            .map(|i| self.adjacency_matrix[(source, *i)])
+            .filter(|val| *val < i32::MAX / 2)
+            .min();
 
-        new_cost
+        self.cost + {
+            new_row_min.unwrap_or(0)
+            + new_col_min.unwrap_or(0)
+        }
     }
     
     pub fn forbid_edge(&mut self, edge: Edge) {
-        let (source, target) = edge;
-        self.adjacency_matrix[source][target] = f64::INFINITY;
+        self.adjacency_matrix[edge] = i32::MAX;
         self.zeros.remove(&edge);
     }
     
@@ -55,67 +61,67 @@ impl SearchNode {
                 break;
             }
         }
-        
-        self.zeros = self.zeros
-            .iter()
-            .filter(|(s, t)| *s != source && *t != target)
-            .map(|(s, t)| (*s, *t))
-            .collect();
+
+        self.zeros.retain(|(s, t)| *s != source && *t != target);
     }
 
     fn reduce_rows(&mut self) {
-        for i in self.row_order.clone() {
-            if let Some(min_in_row) = self.get_row_min(i) {
-                self.update_row_and_zeros(i, min_in_row);
+        for i in self.row_order.iter() {
+            if let Some(min_in_row) = self.get_row_min(*i) {
+                for j in self.col_order.iter() {
+                    self.adjacency_matrix[(*i, *j)] -= min_in_row;
+                    if self.adjacency_matrix[(*i, *j)] == 0 {
+                        self.zeros.insert((*i, *j));
+                    }
+                }
                 self.cost += min_in_row;
             }
         }
     }
     
     fn reduce_cols(&mut self) {
-        for i in self.col_order.clone() {
-            if let Some(min_in_col) = self.get_col_min(i) {
-                self.update_col_and_zeros(i, min_in_col);
+        for j in self.col_order.iter() {
+            if let Some(min_in_col) = self.get_col_min(*j) {
+                for i in self.row_order.iter() {
+                    self.adjacency_matrix[(*i, *j)] -= min_in_col;
+                    if self.adjacency_matrix[(*i, *j)] == 0 {
+                        self.zeros.insert((*i, *j));
+                    }
+                }
                 self.cost += min_in_col;
             }
         }
     }
 
-    fn update_row_and_zeros(&mut self, row: usize, amt: f64) {
+    fn update_row_and_zeros(&mut self, row: usize, amt: i32) {
         for i in self.col_order.iter() {
-            if self.adjacency_matrix[row][*i] == f64::INFINITY {
-                continue;
-            }
-            self.adjacency_matrix[row][*i] -= amt;
-            if self.adjacency_matrix[row][*i] == 0. {
+            self.adjacency_matrix[(row, *i)] -= amt;
+            if self.adjacency_matrix[(row, *i)] == 0 {
                 self.zeros.insert((row, *i));
             }
         }
     }
 
-    fn update_col_and_zeros(&mut self, col: usize, amt: f64) {
+    fn update_col_and_zeros(&mut self, col: usize, amt: i32) {
         for i in self.row_order.iter() {
-            if self.adjacency_matrix[*i][col] == f64::INFINITY {
-                continue;
-            }
-            self.adjacency_matrix[*i][col] -= amt;
-            if self.adjacency_matrix[*i][col] == 0. {
+            self.adjacency_matrix[(*i, col)] -= amt;
+            if self.adjacency_matrix[(*i, col)] == 0 {
                 self.zeros.insert((*i, col));
             }
         }
     }
     
-    fn get_row_min(&self, row: usize) -> Option<f64> {
+    fn get_row_min(&self, row: usize) -> Option<i32> {
         self.col_order.iter()
-            .map(|i| self.adjacency_matrix[row][*i])
-            .filter(|val| *val != f64::INFINITY)
-            .min_by(|a, b| a.total_cmp(b))
+            .map(|i| self.adjacency_matrix[(row, *i)])
+            .filter(|val| *val < i32::MAX/2)
+            .min()
     }
     
-    fn get_col_min(&self, col: usize) -> Option<f64> {
+    fn get_col_min(&self, col: usize) -> Option<i32> {
         self.row_order.iter()
-            .map(|i| self.adjacency_matrix[*i][col])
-            .filter(|val| *val != f64::INFINITY)
-            .min_by(|a, b| a.total_cmp(b))
+            .map(|i| self.adjacency_matrix[(*i, col)])
+            .filter(|val| *val < i32::MAX/2)
+            .min()
     }
 }

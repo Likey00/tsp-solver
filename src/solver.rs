@@ -1,11 +1,12 @@
 use crate::{search_node::{Edge, SearchNode, reverse_edge}, file_utils::read_file};
 
 pub struct Solver {
-    best_cost: f64,
+    best_cost: i32,
     best_edges: Vec<Edge>,
     nodes_visited: usize,
     root: SearchNode,
     equals_best: usize,
+    initial_matrix: Vec<Vec<i32>>,
 }
 
 impl Solver {
@@ -14,15 +15,16 @@ impl Solver {
         let n = initial_matrix.len();
         println!("Successfully read matrix of dimension {}", n);
         
-        let root = SearchNode::new(initial_matrix);
+        let root = SearchNode::new(initial_matrix.clone());
         println!("Initial lower bound: {}", root.cost);
         
         Self {
-            best_cost: f64::INFINITY,
+            best_cost: i32::MAX,
             best_edges: Vec::new(),
             nodes_visited: 0,
             root,
             equals_best: 0,
+            initial_matrix
         }
     }
 
@@ -36,32 +38,46 @@ impl Solver {
     
     fn recurse(&mut self, mut current_node: SearchNode) {
         self.nodes_visited += 1;
+        if self.nodes_visited % 1_000_000 == 0 {
+            println!("{} nodes visited, {} is best so far", self.nodes_visited, self.best_cost);
+        }
 
         if current_node.edges_included.len() == current_node.n {
+            let mut sum = 0;
+            for edge in &current_node.edges_included {
+                sum += self.initial_matrix[edge.0][edge.1];
+            }
+            assert_eq!(sum, current_node.cost);
             self.update_best(current_node);
             return;
         }
         
         let next_edge = current_node.find_edge_to_include();
-        if let Some(edge) = next_edge {
-            let mut included = current_node.clone();
-
-            included.add_edge(edge);
-            included.reduce_matrix();
-
-            if included.cost < self.best_cost {
-                self.recurse(included.clone());
+        if let Some((edge, cost_not_included)) = next_edge {
+            if cost_not_included >= self.best_cost {
+                self.include_and_recurse(current_node, edge);
             }
-            
-            let mut not_included = current_node;
-            if not_included.edges_included.is_empty() {
-                not_included.reduce_by_edge(reverse_edge(edge));
+            else {
+                self.include_and_recurse(current_node.clone(), edge);
+                self.exclude_and_recurse(current_node, edge);
             }
-            not_included.reduce_by_edge(edge);
-
-            if not_included.cost < self.best_cost {
-                self.recurse(not_included);
-            }
+        }
+    }
+    
+    fn include_and_recurse(&mut self, mut included: SearchNode, edge: Edge) {
+        included.add_edge(edge);
+        if included.cost < self.best_cost {
+            self.recurse(included);
+        }
+    }
+    
+    fn exclude_and_recurse(&mut self, mut excluded: SearchNode, edge: Edge) {
+        excluded.reduce_by_edge(edge);
+        if excluded.edges_included.is_empty() {
+            excluded.reduce_by_edge(reverse_edge(edge));
+        }
+        if excluded.cost < self.best_cost {
+            self.recurse(excluded);
         }
     }
 

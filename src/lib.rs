@@ -6,7 +6,10 @@ mod matrix_utils;
 mod search_node;
 mod solver;
 
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 pub fn run() {
-    let mut solver = Solver::new("test26.txt");
+    let mut solver = Solver::new("test.txt");
     solver.solve();
 }

@@ -1,4 +1,5 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
+use array2d::Array2D;
 
 use crate::chain_tracker::ChainTracker;
 
@@ -12,8 +13,8 @@ pub fn reverse_edge(edge: Edge) -> Edge {
 #[derive(Clone)]
 pub struct SearchNode {
     pub n: usize,
-    pub cost: f64,
-    pub adjacency_matrix: Vec<Vec<f64>>,
+    pub cost: i32,
+    pub adjacency_matrix: Array2D<i32>,
     pub edges_included: Vec<Edge>,
     pub zeros: BTreeSet<Edge>,
     pub row_order: Vec<usize>,
@@ -22,13 +23,13 @@ pub struct SearchNode {
 }
 
 impl SearchNode {
-    pub fn new(adjacency_matrix: Vec<Vec<f64>>) -> Self {
+    pub fn new(adjacency_matrix: Vec<Vec<i32>>) -> Self {
         let n = adjacency_matrix.len();
 
         let mut root = Self {
             n,
-            cost: 0.,
-            adjacency_matrix,
+            cost: 0,
+            adjacency_matrix: Array2D::from_rows(&adjacency_matrix).unwrap(),
             edges_included: Vec::with_capacity(n*n),
             zeros: BTreeSet::new(),
             row_order: (0..n).collect(),
@@ -47,20 +48,21 @@ impl SearchNode {
             self.forbid_edge(edge_to_forbid);
         }
         self.forbid_row_and_col(edge);
+        self.reduce_matrix();
     }
     
-    pub fn find_edge_to_include(&mut self) -> Option<Edge> {
-        let mut max_cost = self.cost;
+    pub fn find_edge_to_include(&mut self) -> Option<(Edge, i32)> {
+        let mut max_cost = 0;
         let mut max_edge = None;
 
-        for edge in self.zeros.clone().iter() {
+        for edge in self.zeros.iter() {
             let cost = self.cost_after_deletion(*edge);
-            if cost >= max_cost {
+            if cost > max_cost {
                 max_cost = cost;
                 max_edge = Some(*edge);
             }
         }
         
-        max_edge
+        Some((max_edge?, max_cost))
     }
 }
