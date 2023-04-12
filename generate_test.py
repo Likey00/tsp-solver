@@ -1,7 +1,12 @@
 from random import randint
 from math import sqrt
+import sys
 
-n = 37
+if len(sys.argv) == 1:
+    print('Please enter the number of vertices to generate')
+    exit()
+
+n = int(sys.argv[1])
 random_coords = [(randint(1, 1000), randint(1, 1000)) for _ in range(n)]
 
 with open('test.txt', 'w') as f:

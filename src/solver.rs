@@ -1,4 +1,4 @@
-use crate::{search_node::{Edge, SearchNode, reverse_edge}, file_utils::read_file};
+use crate::{search_node::{SearchNode, edge::{Edge, Reverse}}, file_utils::read_file};
 
 pub struct Solver {
     best_cost: i32,
@@ -6,7 +6,6 @@ pub struct Solver {
     nodes_visited: usize,
     root: SearchNode,
     equals_best: usize,
-    initial_matrix: Vec<Vec<i32>>,
 }
 
 impl Solver {
@@ -15,7 +14,7 @@ impl Solver {
         let n = initial_matrix.len();
         println!("Successfully read matrix of dimension {}", n);
         
-        let root = SearchNode::new(initial_matrix.clone());
+        let root = SearchNode::new(initial_matrix);
         println!("Initial lower bound: {}", root.cost);
         
         Self {
@@ -24,7 +23,6 @@ impl Solver {
             nodes_visited: 0,
             root,
             equals_best: 0,
-            initial_matrix
         }
     }
 
@@ -43,11 +41,6 @@ impl Solver {
         }
 
         if current_node.edges_included.len() == current_node.n {
-            let mut sum = 0;
-            for edge in &current_node.edges_included {
-                sum += self.initial_matrix[edge.0][edge.1];
-            }
-            assert_eq!(sum, current_node.cost);
             self.update_best(current_node);
             return;
         }
@@ -74,7 +67,7 @@ impl Solver {
     fn exclude_and_recurse(&mut self, mut excluded: SearchNode, edge: Edge) {
         excluded.reduce_by_edge(edge);
         if excluded.edges_included.is_empty() {
-            excluded.reduce_by_edge(reverse_edge(edge));
+            excluded.reduce_by_edge(edge.reverse());
         }
         if excluded.cost < self.best_cost {
             self.recurse(excluded);

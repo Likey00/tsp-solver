@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 array2d = "0.3.0"
-tikv-jemallocator = "0.5.0"
 
 [profile.release]
 lto = true
